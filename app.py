@@ -16,8 +16,18 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # Load Environment Variables
 load_dotenv()
-if "GOOGLE_API_KEY" in os.environ:
-    genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+
+def get_api_key():
+    try:
+        if "GOOGLE_API_KEY" in st.secrets:
+            return st.secrets["GOOGLE_API_KEY"]
+    except Exception:
+        pass
+    return os.environ.get("GOOGLE_API_KEY", "")
+
+api_key = get_api_key()
+if api_key:
+    genai.configure(api_key=api_key)
 
 def get_pdf_documents(pdf_docs):
     docs = []
@@ -34,7 +44,7 @@ def get_text_chunks(docs):
     return text_splitter.split_documents(docs)
 
 def get_vector_store(chunks):
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
     vector_store = FAISS.from_documents(chunks, embedding=embeddings)
     vector_store.save_local("faiss_index")
 
@@ -50,7 +60,7 @@ def get_conversational_chain():
 
     Answer:
     """
-    model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3)
+    model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3, google_api_key=api_key)
     prompt = ChatPromptTemplate.from_template(prompt_template)
     
     chain = prompt | model | StrOutputParser()
@@ -66,7 +76,7 @@ def text_to_speech(text):
     return fp.read()
 
 def process_user_input(user_question):
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
     
     if not os.path.exists("faiss_index"):
         st.error("Please upload and process a PDF first.")
