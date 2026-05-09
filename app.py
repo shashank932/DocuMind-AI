@@ -46,7 +46,7 @@ def get_text_chunks(docs):
 
 def get_vector_store(chunks):
     try:
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004", google_api_key=api_key)
         vector_store = FAISS.from_documents(chunks, embedding=embeddings)
         vector_store.save_local("faiss_index")
         return True
@@ -82,7 +82,7 @@ def text_to_speech(text):
     return fp.read()
 
 def process_user_input(user_question):
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004", google_api_key=api_key)
     
     if not os.path.exists("faiss_index"):
         st.error("Please upload and process a PDF first.")
