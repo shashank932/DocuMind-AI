@@ -72,8 +72,11 @@ def get_conversational_chain():
 def get_summary(text):
     try:
         model = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.3, google_api_key=api_key)
-        response = model.invoke(f"Summarize this text in 3-4 professional bullet points:\n\n{text[:15000]}")
-        return response.content
+        response = model.invoke(f"Summarize this document in 3-4 professional bullet points:\n\n{text[:15000]}")
+        # Ensure we return a string
+        if hasattr(response, 'content'):
+            return str(response.content)
+        return str(response)
     except Exception as e:
         return f"Summary Error: {str(e)}"
 
@@ -117,71 +120,25 @@ def main():
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
         
-        html, body, [class*="css"] {
-            font-family: 'Inter', sans-serif;
-        }
-
-        .stApp {
-            background-color: #212121;
-        }
-
-        /* Sidebar Styling */
-        section[data-testid="stSidebar"] {
-            background-color: #171717 !important;
-            width: 260px !important;
-        }
-
-        /* Center Content like ChatGPT */
-        .main .block-container {
-            max-width: 800px;
-            padding-top: 2rem;
-            padding-bottom: 10rem;
-        }
-
-        .main-header {
-            font-size: 2rem;
-            font-weight: 600;
-            color: #ececf1;
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        /* Chat Message Styling */
-        .stChatMessage {
-            background-color: transparent !important;
-            border: none !important;
-            padding: 1.5rem 0 !important;
-        }
-        
-        .stChatMessage[data-testid="stChatMessageAssistant"] {
-            background-color: #2f2f2f10 !important;
-        }
-
-        /* Hide Streamlit elements for cleaner look */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
-
-        /* Voice button subtle styling */
-        .voice-container {
-            position: fixed;
-            bottom: 85px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-        }
+        html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+        .stApp { background-color: #212121; }
+        section[data-testid="stSidebar"] { background-color: #171717 !important; width: 260px !important; }
+        .main .block-container { max-width: 800px; padding-top: 2rem; padding-bottom: 10rem; }
+        .main-header { font-size: 2rem; font-weight: 600; color: #ececf1; text-align: center; margin-bottom: 1rem; }
+        .summary-card { background: #2f2f2f; padding: 1.5rem; border-radius: 12px; border: 1px solid #444; margin-bottom: 2rem; color: #ececf1; }
+        .stChatMessage { background-color: transparent !important; border: none !important; padding: 1.5rem 0 !important; }
+        .voice-container { position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); z-index: 1000; }
+        footer {visibility: hidden;} header {visibility: hidden;}
         </style>
     """, unsafe_allow_html=True)
 
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-    if "raw_text" not in st.session_state:
-        st.session_state.raw_text = ""
+    if "chat_history" not in st.session_state: st.session_state.chat_history = []
+    if "raw_text" not in st.session_state: st.session_state.raw_text = ""
+    if "doc_summary" not in st.session_state: st.session_state.doc_summary = ""
 
     # SIDEBAR
     with st.sidebar:
         st.markdown("<h2 style='color: white; margin-bottom: 20px;'>DocuMind AI</h2>", unsafe_allow_html=True)
-        
         with st.expander("📁 Upload Documents", expanded=True):
             pdf_docs = st.file_uploader("Upload PDFs", accept_multiple_files=True, type=['pdf'], label_visibility="collapsed")
             if st.button("🚀 Process", use_container_width=True):
@@ -192,15 +149,8 @@ def main():
                         text_chunks = get_text_chunks(docs)
                         if get_vector_store(text_chunks):
                             st.success("Ready!")
-                else:
-                    st.warning("Upload PDF")
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.session_state.raw_text:
-            if st.button("✨ Summarize", use_container_width=True):
-                with st.spinner("Summarizing..."):
-                    summary = get_summary(st.session_state.raw_text)
-                    st.info(summary)
+                            st.session_state.doc_summary = "" # Reset summary for new docs
+                else: st.warning("Upload PDF")
         
         st.markdown("<div style='position: fixed; bottom: 20px; width: 220px;'>", unsafe_allow_html=True)
         if st.button("🗑️ Clear History", use_container_width=True):
@@ -211,27 +161,35 @@ def main():
     # MAIN AREA
     st.markdown('<div class="main-header">DocuMind AI</div>', unsafe_allow_html=True)
 
-    # Chat Messages in centered container
+    # SUMMARIZE SECTION (Now in the middle)
+    if st.session_state.raw_text:
+        col_s1, col_s2, col_s3 = st.columns([1, 2, 1])
+        with col_s2:
+            if st.button("✨ Summarize Document", use_container_width=True):
+                with st.spinner("Analyzing..."):
+                    st.session_state.doc_summary = get_summary(st.session_state.raw_text)
+        
+        if st.session_state.doc_summary:
+            st.markdown(f'<div class="summary-card"><b>📝 Document Summary:</b><br><br>{st.session_state.doc_summary}</div>', unsafe_allow_html=True)
+
+    # Chat Messages
     for message in st.session_state.chat_history:
         with st.chat_message(message["role"]):
             st.write(message["content"])
             if "audio" in message:
                 st.audio(message["audio"], format="audio/mp3")
 
-    # Fixed Voice Button above Chat Input
+    # Fixed Voice Button
     st.markdown('<div class="voice-container">', unsafe_allow_html=True)
     voice_text = speech_to_text(language='en', start_prompt="🎤 Speak", stop_prompt="⏹️ Stop", key='STT')
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Chat Input (Anchored at bottom, centered automatically by block-container max-width)
+    # Chat Input
     user_question = st.chat_input("Ask anything...")
-    
     if user_question:
-        if process_user_input(user_question):
-            st.rerun()
+        if process_user_input(user_question): st.rerun()
     elif voice_text:
-        if process_user_input(voice_text):
-            st.rerun()
+        if process_user_input(voice_text): st.rerun()
 
 if __name__ == "__main__":
     main()
