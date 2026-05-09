@@ -109,22 +109,22 @@ def process_user_input(user_question):
 def main():
     st.set_page_config(page_title="DocuMind AI Chatbot", page_icon="📄", layout="wide")
     
-    # Matching the User's provided screenshot style (Clean White & Minimal)
+    # Matching the User's provided screenshot style (Clean Dark Theme)
     st.markdown("""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap');
         
         * { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .stApp { background-color: #ffffff; }
+        .stApp { background-color: #000000; color: #ffffff; }
         
-        /* Sidebar styling to match the orange/white theme */
+        /* Sidebar styling - Dark Gray */
         section[data-testid="stSidebar"] {
-            background-color: #f8f9fa !important;
-            border-right: 1px solid #dee2e6;
+            background-color: #1a1a1a !important;
+            border-right: 1px solid #333;
         }
         
         .sidebar-header {
-            color: #d9480f; /* Orange color from screenshot */
+            color: #ff922b; /* Bright Orange for dark theme */
             font-size: 1.2rem;
             font-weight: 700;
             margin-bottom: 10px;
@@ -135,45 +135,55 @@ def main():
         .main-header {
             font-size: 2.5rem;
             font-weight: 700;
-            color: #2b8a3e; /* Green color from screenshot */
+            color: #40c057; /* Brighter Green for dark theme */
             margin-bottom: 0.5rem;
         }
         
         .sub-header {
             font-size: 1.5rem;
             font-weight: 600;
-            color: #495057;
+            color: #adb5bd;
             margin-bottom: 1rem;
         }
 
-        /* Chat styles matching the screenshot (No bubbles, plain text with colors) */
+        /* Chat styles matching the screenshot plain text style */
         .user-msg {
-            color: #2b8a3e; /* Green for user */
-            font-weight: 600;
+            color: #40c057; /* Green for user */
+            font-weight: 700;
             margin-bottom: 5px;
+            font-size: 1.1rem;
         }
         
         .bot-msg {
-            color: #d9480f; /* Orange for chatbot */
-            font-weight: 600;
+            color: #ff922b; /* Orange for chatbot */
+            font-weight: 700;
             margin-bottom: 5px;
+            font-size: 1.1rem;
         }
         
         .chat-content {
-            color: #343a40;
-            margin-bottom: 20px;
+            color: #f8fafc;
+            margin-bottom: 25px;
             line-height: 1.6;
+            font-size: 1rem;
         }
 
         .summary-box {
-            background-color: #f1f3f5;
+            background-color: #1a1a1a;
             padding: 15px;
             border-radius: 8px;
-            border-left: 5px solid #2b8a3e;
-            margin-bottom: 20px;
+            border-left: 5px solid #40c057;
+            margin-bottom: 25px;
+            color: #f8fafc;
+        }
+
+        /* Input styling */
+        .stChatInputContainer {
+            padding-bottom: 20px;
         }
 
         footer {visibility: hidden;}
+        header {visibility: hidden;}
         </style>
     """, unsafe_allow_html=True)
 
@@ -183,21 +193,21 @@ def main():
 
     # SIDEBAR
     with st.sidebar:
-        st.markdown('<div class="sidebar-header">UPLOAD YOUR DOCUMENT HERE (PDF Only)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-header">Knowledge Base</div>', unsafe_allow_html=True)
         pdf_docs = st.file_uploader("Upload File", accept_multiple_files=True, type=['pdf'], label_visibility="collapsed")
         
-        if st.button("🚀 Process"):
+        if st.button("🚀 Process Documents", use_container_width=True):
             if pdf_docs:
                 with st.spinner("Processing..."):
                     docs = get_pdf_documents(pdf_docs)
                     st.session_state.raw_text = " ".join([d.page_content for d in docs])
                     text_chunks = get_text_chunks(docs)
                     if get_vector_store(text_chunks):
-                        st.success("Successfully Processed!")
-            else: st.warning("Please upload a PDF")
+                        st.success("Docs Processed!")
+            else: st.warning("Upload PDF")
 
         st.markdown("---")
-        if st.button("🗑️ Clear History"):
+        if st.button("🗑️ Clear Chat History", use_container_width=True):
             st.session_state.chat_history = []
             st.rerun()
 
@@ -210,18 +220,18 @@ def main():
     """)
     st.markdown("---")
 
-    # Summary Button (Centered in main area as requested)
+    # Summary Button
     if st.session_state.raw_text:
         col_s1, col_s2, col_s3 = st.columns([1, 1, 1])
         with col_s2:
-            if st.button("✨ Generate Summary"):
+            if st.button("✨ Generate Summary", use_container_width=True):
                 with st.spinner("Summarizing..."):
                     st.session_state.doc_summary = get_summary(st.session_state.raw_text)
         
         if st.session_state.doc_summary:
-            st.markdown(f'<div class="summary-box"><b>📝 Document Summary:</b><br>{st.session_state.doc_summary}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="summary-box"><b>📝 Document Summary:</b><br><br>{st.session_state.doc_summary}</div>', unsafe_allow_html=True)
 
-    # Chat Display matching the screenshot plain text style
+    # Chat Display
     for message in st.session_state.chat_history:
         if message["role"] == "user":
             st.markdown(f'<div class="user-msg">User: {message["content"]}</div>', unsafe_allow_html=True)
@@ -232,8 +242,8 @@ def main():
                 st.audio(message["audio"], format="audio/mp3")
 
     # Chat Input & Voice
-    voice_text = speech_to_text(language='en', start_prompt="🎤 Speak to Chat", stop_prompt="⏹️ Stop", key='STT')
-    user_question = st.chat_input("Ask a question about your documents...")
+    voice_text = speech_to_text(language='en', start_prompt="🎤 Speak", stop_prompt="⏹️ Stop", key='STT')
+    user_question = st.chat_input("Ask a question...")
     
     if user_question:
         if process_user_input(user_question): st.rerun()
