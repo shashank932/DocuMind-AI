@@ -20,7 +20,7 @@ DocuMind AI is an intelligent, multi-document assistant powered by Google Gemini
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/DocuMind-AI.git
+   git clone https://github.com/shashank932/DocuMind-AI.git
    cd DocuMind-AI
    ```
 
