@@ -59,10 +59,16 @@ def format_docs(docs):
 
 def get_conversational_chain():
     prompt_template = """
-    Answer the question as detailed as possible from the provided context. If the answer is not in
-    the provided context just say, "The answer is not available in the context", don't provide a wrong answer.\n\n
-    Context:\n {context}?\n
-    Question: \n{input}\n
+    You are a professional assistant. Use the provided context to answer the user's question accurately.
+    
+    1. If the answer is present in the context, provide a detailed response and cite the source.
+    2. If the answer is NOT in the context, do not say "I don't know". Instead, use your own general knowledge to answer the question helpfully while mentioning that the information is from your general knowledge.
+    
+    Context:
+    {context}
+    
+    Question: 
+    {input}
 
     Answer:
     """
