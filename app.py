@@ -105,6 +105,10 @@ def process_user_input(user_question):
 def main():
     st.set_page_config(page_title="DocuMind AI", page_icon="🧠", layout="wide")
     
+    if not api_key:
+        st.error("🚨 Google Gemini API Key is missing or invalid! Please add your key in the Streamlit Advanced Settings -> Secrets.")
+        st.stop()
+    
     st.markdown("""
         <style>
         .stApp {
