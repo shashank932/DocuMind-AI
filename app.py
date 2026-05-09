@@ -66,7 +66,7 @@ def get_conversational_chain():
 
     Answer:
     """
-    model = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.3, google_api_key=api_key)
+    model = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.3, google_api_key=api_key)
     prompt = ChatPromptTemplate.from_template(prompt_template)
     
     chain = prompt | model | StrOutputParser()
@@ -103,14 +103,16 @@ def process_user_input(user_question):
             "input": user_question
         })
     except Exception as e:
+        print("CHAT ERROR:", e)
         st.error(f"⚠️ Google API Error while answering: (Error details: {str(e)})")
-        return
+        return False
 
     full_response = response + source_text
     audio_bytes = text_to_speech(full_response)
 
     st.session_state.chat_history.append({"role": "user", "content": user_question})
     st.session_state.chat_history.append({"role": "assistant", "content": full_response, "audio": audio_bytes})
+    return True
 
 def main():
     st.set_page_config(page_title="DocuMind AI", page_icon="🧠", layout="wide")
@@ -208,13 +210,13 @@ def main():
             st.write("Or use voice:")
             voice_text = speech_to_text(language='en', use_container_width=True, just_once=True, key='STT')
         
-        # Process whichever input is provided
+        # INPUT PROCESSING IS HERE
         if user_question:
-            process_user_input(user_question)
-            st.rerun()
+            if process_user_input(user_question):
+                st.rerun()
         elif voice_text:
-            process_user_input(voice_text)
-            st.rerun()
+            if process_user_input(voice_text):
+                st.rerun()
 
 if __name__ == "__main__":
     main()
