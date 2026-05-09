@@ -59,10 +59,10 @@ def format_docs(docs):
 
 def get_conversational_chain():
     prompt_template = """
-    You are a professional assistant. Use the provided context to answer the user's question accurately.
+    You are DocuMind AI, a professional document assistant. Use the provided context to answer the user's question accurately.
     
     1. If the answer is present in the context, provide a detailed response and cite the source.
-    2. If the answer is NOT in the context, do not say "I don't know". Instead, use your own general knowledge to answer the question helpfully while mentioning that the information is from your general knowledge.
+    2. If the answer is NOT in the context, use your general knowledge to answer helpfully, but mention that the info is from your general knowledge.
     
     Context:
     {context}
@@ -74,12 +74,18 @@ def get_conversational_chain():
     """
     model = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.3, google_api_key=api_key)
     prompt = ChatPromptTemplate.from_template(prompt_template)
-    
     chain = prompt | model | StrOutputParser()
     return chain
 
+def get_summary(text):
+    try:
+        model = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0.3, google_api_key=api_key)
+        response = model.invoke(f"Please provide a concise and professional summary of the following text in 3-4 bullet points:\n\n{text[:15000]}")
+        return response.content
+    except Exception as e:
+        return f"Error generating summary: {str(e)}"
+
 def text_to_speech(text):
-    # Remove source citations from audio to make it sound natural
     clean_text = text.split("\n\n*Sources:")[0]
     tts = gTTS(clean_text, lang='en')
     fp = io.BytesIO()
@@ -92,12 +98,11 @@ def process_user_input(user_question):
     
     if not os.path.exists("faiss_index"):
         st.error("Please upload and process a PDF first.")
-        return
+        return False
 
     new_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
     docs = new_db.similarity_search(user_question)
 
-    # Extract unique sources for citation
     sources = set([f"{doc.metadata['source']} (Page {doc.metadata['page']})" for doc in docs])
     source_text = "\n\n*Sources: " + ", ".join(sources) + "*" if sources else ""
 
@@ -109,7 +114,6 @@ def process_user_input(user_question):
             "input": user_question
         })
     except Exception as e:
-        print("CHAT ERROR:", e)
         st.error(f"⚠️ Google API Error while answering: (Error details: {str(e)})")
         return False
 
@@ -121,102 +125,143 @@ def process_user_input(user_question):
     return True
 
 def main():
-    st.set_page_config(page_title="DocuMind AI", page_icon="🧠", layout="wide")
+    st.set_page_config(page_title="DocuMind AI - Intelligent PDF Assistant", page_icon="🧠", layout="wide")
     
     if not api_key:
-        st.error("🚨 Google Gemini API Key is missing or invalid! Please add your key in the Streamlit Advanced Settings -> Secrets.")
+        st.error("🚨 Google Gemini API Key is missing! Please add it in the Streamlit Advanced Settings -> Secrets.")
         st.stop()
     
     st.markdown("""
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap');
+        
+        * { font-family: 'Outfit', sans-serif; }
+        
         .stApp {
-            background-color: #0e1117;
-            color: #fafafa;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: #f8fafc;
         }
-        .main-header {
-            font-size: 3rem;
-            color: #4facfe;
+        
+        .hero-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 3rem;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             text-align: center;
-            font-weight: bold;
             margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
         }
+        
+        .main-title {
+            font-size: 4rem;
+            background: linear-gradient(to right, #60a5fa, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+        
+        .sidebar-card {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 1rem;
+        }
+        
         .stButton>button {
-            background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+            width: 100%;
+            background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
             color: white;
-            border-radius: 8px;
             border: none;
-            padding: 10px 24px;
+            padding: 0.6rem;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
-        .stTextInput>div>div>input {
-            border-radius: 10px;
+        
+        .stButton>button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
         }
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="main-header">🧠 DocuMind AI</div>', unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center;'>Your Intelligent Multi-Document Assistant with Voice & Citations</p>", unsafe_allow_html=True)
+    # Hero Section
+    st.markdown("""
+        <div class="hero-section">
+            <h1 class="main-title">🧠 DocuMind AI</h1>
+            <p style="font-size: 1.2rem; color: #94a3b8; max-width: 800px; margin: 0 auto;">
+                The ultimate intelligent document assistant. Upload multiple PDFs and chat with them using 
+                state-of-the-art Generative AI, Citations, and Voice interaction.
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
 
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
+    if "raw_text" not in st.session_state:
+        st.session_state.raw_text = ""
 
-    col1, col2 = st.columns([1, 3])
+    col1, col2 = st.columns([1, 2.5], gap="large")
 
     with col1:
+        st.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
         st.subheader("📚 Knowledge Base")
-        pdf_docs = st.file_uploader("Upload your PDFs here and click on 'Process'", accept_multiple_files=True, type=['pdf'])
-        if st.button("Process Documents"):
+        pdf_docs = st.file_uploader("Upload PDFs", accept_multiple_files=True, type=['pdf'])
+        
+        if st.button("🚀 Process Documents"):
             if pdf_docs:
-                with st.spinner("Processing your documents..."):
+                with st.spinner("Analyzing documents..."):
                     docs = get_pdf_documents(pdf_docs)
+                    st.session_state.raw_text = " ".join([d.page_content for d in docs])
                     text_chunks = get_text_chunks(docs)
                     success = get_vector_store(text_chunks)
                     if success:
-                        st.success("Documents processed successfully!")
+                        st.success("Docs Ready!")
             else:
-                st.warning("Please upload PDF files first.")
+                st.warning("Upload PDFs first.")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        if st.session_state.raw_text:
+            st.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
+            st.subheader("📝 Smart Insights")
+            if st.button("✨ Quick Summary"):
+                with st.spinner("Summarizing..."):
+                    summary = get_summary(st.session_state.raw_text)
+                    st.info(summary)
+            st.markdown('</div>', unsafe_allow_html=True)
         
-        st.markdown("---")
-        st.subheader("⚙️ Options")
-        
-        # Clear Chat Button
-        if st.button("🗑️ Clear Chat History"):
+        st.markdown('<div class="sidebar-card">', unsafe_allow_html=True)
+        st.subheader("⚙️ Actions")
+        if st.button("🗑️ Clear Chat"):
             st.session_state.chat_history = []
             st.rerun()
             
-        # Download Chat Button
         if st.session_state.chat_history:
-            chat_text = "DocuMind AI - Chat History\n\n"
+            chat_text = "DocuMind AI History\n\n"
             for msg in st.session_state.chat_history:
-                role = "You" if msg["role"] == "user" else "DocuMind AI"
-                chat_text += f"{role}: {msg['content']}\n\n"
-            
-            st.download_button(
-                label="💾 Download Chat",
-                data=chat_text,
-                file_name="chat_history.txt",
-                mime="text/plain"
-            )
+                chat_text += f"{msg['role'].upper()}: {msg['content']}\n\n"
+            st.download_button("💾 Export Chat", chat_text, "chat.txt")
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
-        st.subheader("💬 Chat")
-        
-        for message in st.session_state.chat_history:
-            if message["role"] == "user":
-                st.markdown(f"**🧑‍💻 You:** {message['content']}")
-            else:
-                st.markdown(f"**🤖 DocuMind AI:** {message['content']}")
-                if "audio" in message:
-                    st.audio(message["audio"], format="audio/mp3")
+        chat_container = st.container(height=500)
+        with chat_container:
+            for message in st.session_state.chat_history:
+                with st.chat_message(message["role"]):
+                    st.write(message["content"])
+                    if "audio" in message:
+                        st.audio(message["audio"], format="audio/mp3")
                 
-        # Input options: Text or Voice
-        c1, c2 = st.columns([5, 1])
+        # Input row
+        c1, c2 = st.columns([4, 1])
         with c1:
-            user_question = st.chat_input("Ask a question about your documents...")
+            user_question = st.chat_input("Ask anything...")
         with c2:
-            st.write("Or use voice:")
             voice_text = speech_to_text(language='en', use_container_width=True, just_once=True, key='STT')
         
-        # INPUT PROCESSING IS HERE
         if user_question:
             if process_user_input(user_question):
                 st.rerun()

@@ -1,53 +1,54 @@
-# 🧠 DocuMind AI
+# 🧠 DocuMind AI: Intelligent Multi-Document Assistant
 
-DocuMind AI is an intelligent, multi-document assistant powered by Google Gemini AI. It allows you to upload multiple PDF documents and ask questions directly from the content. The system uses RAG (Retrieval-Augmented Generation) to fetch the most relevant context and formulate highly accurate, contextual answers.
+DocuMind AI is a state-of-the-art **Retrieval-Augmented Generation (RAG)** application that allows users to have natural conversations with multiple PDF documents. Built with **LangChain**, **Google Gemini AI**, and **Streamlit**, it features advanced capabilities like Citations, Voice Interaction, and Automated Summarization.
 
-## ✨ Features
+## 🚀 Live Demo
+Check out the live application here: **[https://8eownyduk5mz4gnnuyjfsu.streamlit.app/](https://8eownyduk5mz4gnnuyjfsu.streamlit.app/)**
 
-- **Multi-PDF Support:** Upload and process multiple PDF files simultaneously.
-- **Persistent Chat History:** Keeps track of your conversation context.
-- **Smart Embeddings:** Leverages state-of-the-art Google Gemini AI embeddings and FAISS for rapid document retrieval.
-- **Modern UI:** Built with an eye-friendly Dark Mode and responsive layout using Streamlit.
+## ✨ Key Features
+- **Multi-PDF Support**: Upload and chat with multiple documents simultaneously.
+- **Hybrid Intelligence**: Answers questions based on document context AND general world knowledge.
+- **Voice Interaction**: Integrated Speech-to-Text (Voice Input) and Text-to-Speech (Audio Output).
+- **Source Citations**: Automatically cites the exact page number and document name for every answer.
+- **Smart Summary**: Generate a professional summary of entire documents with a single click.
+- **Premium UI**: Modern dark-mode interface with glassmorphism design and responsive layout.
+- **Chat Persistence**: Maintain chat history during the session with export options.
 
-## 🚀 Getting Started
+## 🛠️ Tech Stack
+- **Frontend**: Streamlit (Python)
+- **AI Framework**: LangChain (LCEL)
+- **LLM**: Google Gemini 1.5 Flash
+- **Embeddings**: Google Gemini Embedding 2
+- **Vector Database**: FAISS (Facebook AI Similarity Search)
+- **PDF Processing**: PyPDF2
+- **Voice Logic**: gTTS (Google Text-to-Speech) & Streamlit Mic Recorder
 
-### Prerequisites
+## 📋 Installation & Setup
 
-- Python 3.9+
-- A Google Gemini API Key
-
-### Installation
-
-1. **Clone the repository:**
+1. **Clone the Repository**
    ```bash
    git clone https://github.com/shashank932/DocuMind-AI.git
    cd DocuMind-AI
    ```
 
-2. **Install the required dependencies:**
+2. **Install Dependencies**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Environment Setup:**
-   Create a `.env` file in the root directory and add your Google API key:
+3. **Set Up API Key**
+   Create a `.env` file and add your Google API Key:
    ```env
-   GOOGLE_API_KEY="your_google_api_key_here"
+   GOOGLE_API_KEY="your_api_key_here"
    ```
 
-### Running the Application
+4. **Run the App**
+   ```bash
+   streamlit run app.py
+   ```
 
-To start the DocuMind AI interface, run:
-```bash
-streamlit run app.py
-```
+## 🛡️ Privacy & Security
+All processing is done via secure API calls to Google Generative AI. Documents are processed into local vector stores and are not stored permanently.
 
-## 🛠 Built With
-- [Streamlit](https://streamlit.io/) - The web framework used.
-- [LangChain](https://python.langchain.com/) - Application framework for LLMs.
-- [Google Gemini API](https://ai.google.dev/) - Large Language Model.
-- [FAISS](https://faiss.ai/) - Vector database for fast similarity search.
-- [PyPDF2](https://pypi.org/project/PyPDF2/) - PDF parsing.
-
-## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+---
+Developed with ❤️ by **Shashank**
