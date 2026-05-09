@@ -44,9 +44,14 @@ def get_text_chunks(docs):
     return text_splitter.split_documents(docs)
 
 def get_vector_store(chunks):
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
-    vector_store = FAISS.from_documents(chunks, embedding=embeddings)
-    vector_store.save_local("faiss_index")
+    try:
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
+        vector_store = FAISS.from_documents(chunks, embedding=embeddings)
+        vector_store.save_local("faiss_index")
+        return True
+    except Exception as e:
+        st.error(f"⚠️ Google API Error: Your API key might be invalid or expired. Please check your key! (Error details: {str(e)})")
+        return False
 
 def format_docs(docs):
     return "\n\n".join(f"Source: {doc.metadata['source']} (Page {doc.metadata['page']})\nContent: {doc.page_content}" for doc in docs)
@@ -151,8 +156,9 @@ def main():
                 with st.spinner("Processing your documents..."):
                     docs = get_pdf_documents(pdf_docs)
                     text_chunks = get_text_chunks(docs)
-                    get_vector_store(text_chunks)
-                    st.success("Documents processed successfully!")
+                    success = get_vector_store(text_chunks)
+                    if success:
+                        st.success("Documents processed successfully!")
             else:
                 st.warning("Please upload PDF files first.")
         
