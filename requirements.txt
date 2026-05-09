@@ -8,5 +8,5 @@ langchain-community
 langchain-text-splitters
 PyPDF2
 faiss-cpu
-gTTS
+gtts
 streamlit-mic-recorder
