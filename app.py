@@ -27,6 +27,7 @@ def get_api_key():
 
 api_key = get_api_key()
 if api_key:
+    api_key = api_key.strip().strip("'").strip('"')
     genai.configure(api_key=api_key)
 
 def get_pdf_documents(pdf_docs):
