@@ -66,7 +66,7 @@ def get_conversational_chain():
 
     Answer:
     """
-    model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3, google_api_key=api_key)
+    model = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.3, google_api_key=api_key)
     prompt = ChatPromptTemplate.from_template(prompt_template)
     
     chain = prompt | model | StrOutputParser()
@@ -97,10 +97,14 @@ def process_user_input(user_question):
 
     chain = get_conversational_chain()
     
-    response = chain.invoke({
-        "context": format_docs(docs),
-        "input": user_question
-    })
+    try:
+        response = chain.invoke({
+            "context": format_docs(docs),
+            "input": user_question
+        })
+    except Exception as e:
+        st.error(f"⚠️ Google API Error while answering: (Error details: {str(e)})")
+        return
 
     full_response = response + source_text
     audio_bytes = text_to_speech(full_response)
