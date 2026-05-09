@@ -1,18 +1,19 @@
 import streamlit as st
 from PyPDF2 import PdfReader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 import os
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import google.generativeai as genai
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.chains.question_answering import load_qa_chain
-from langchain.prompts import PromptTemplate
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
 
 # Load Environment Variables
 load_dotenv()
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+if "GOOGLE_API_KEY" in os.environ:
+    genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
 # Function to extract text from PDF
 def get_pdf_text(pdf_docs):
@@ -41,13 +42,13 @@ def get_conversational_chain():
     Answer the question as detailed as possible from the provided context, make sure to provide all the details. If the answer is not in
     provided context just say, "answer is not available in the context", don't provide the wrong answer.\n\n
     Context:\n {context}?\n
-    Question: \n{question}\n
+    Question: \n{input}\n
 
     Answer:
     """
     model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3)
-    prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
-    chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
+    prompt = ChatPromptTemplate.from_template(prompt_template)
+    chain = create_stuff_documents_chain(model, prompt)
     return chain
 
 def user_input(user_question):
@@ -63,14 +64,13 @@ def user_input(user_question):
 
     chain = get_conversational_chain()
     
-    response = chain(
-        {"input_documents": docs, "question": user_question},
-        return_only_outputs=True
+    response = chain.invoke(
+        {"context": docs, "input": user_question}
     )
 
     # Save to chat history
     st.session_state.chat_history.append({"role": "user", "content": user_question})
-    st.session_state.chat_history.append({"role": "assistant", "content": response["output_text"]})
+    st.session_state.chat_history.append({"role": "assistant", "content": response})
 
 def main():
     st.set_page_config(page_title="DocuMind AI", page_icon="🧠", layout="wide")
