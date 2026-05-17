@@ -30,6 +30,11 @@ if api_key:
     api_key = api_key.strip().strip("'").strip('"')
     genai.configure(api_key=api_key)
 
+class SafeGoogleEmbeddings(GoogleGenerativeAIEmbeddings):
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        # Workaround for the API bug where a batch of documents returns a single embedding
+        return [self.embed_query(text) for text in texts]
+
 def get_pdf_documents(pdf_docs):
     docs = []
     for pdf in pdf_docs:
@@ -46,7 +51,7 @@ def get_text_chunks(docs):
 
 def get_vector_store(chunks):
     try:
-        embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-2-preview", google_api_key=api_key)
+        embeddings = SafeGoogleEmbeddings(model="gemini-embedding-2-preview", google_api_key=api_key)
         vector_store = FAISS.from_documents(chunks, embedding=embeddings)
         vector_store.save_local("faiss_index")
         return True
@@ -86,7 +91,7 @@ def text_to_speech(text):
     return fp.read()
 
 def process_user_input(user_question):
-    embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-2-preview", google_api_key=api_key)
+    embeddings = SafeGoogleEmbeddings(model="gemini-embedding-2-preview", google_api_key=api_key)
     if not os.path.exists("faiss_index"):
         st.error("Please upload and process a PDF first.")
         return False
